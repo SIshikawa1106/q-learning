@@ -31,7 +31,6 @@ def compute_value_loss(y, t):
 
     loss_sum = F.sum(F.huber_loss(y, t, delta=1.0))
     loss = loss_sum / y.shape[0]
-
     return loss
 
 class DQL():
@@ -108,6 +107,8 @@ class DQL():
         actions = chainer.Variable(next_q_values.data.argmax(axis=1).astype(np.int32))
         target_next_q_max = F.select_item(target_next_q_values, actions)
 
+        #print("target_q_max={}".format(target_next_q_max))
+
         batch_rewards = data['reward']['r'].reshape(target_next_q_max.shape[0])
         batch_terminal = data['is_state_terminal']['last'].reshape(target_next_q_max.shape[0])
 
@@ -127,9 +128,13 @@ class DQL():
             q_batch = F.reshape(F.select_item(qout,batch_actions.reshape(batch_size)), (batch_size,1))
             #print(q_batch)
 
+        self.average_q *= self.average_q_decay
+        self.average_q += (1.0 - self.average_q_decay)*(F.mean(q_batch)).data
+
         with chainer.no_backprop_mode():
                 batch_q_target = F.reshape(self._compute_target_values(data, self.gamma), (batch_size, 1))
 
+        #print("q_batch={},batch_q_target={}".format(q_batch,batch_q_target))
         return q_batch, batch_q_target
 
     def _compute_loss(self, data):
@@ -140,9 +145,11 @@ class DQL():
     def _update(self, data):
         loss = self._compute_loss(data)
 
+        #print("loss={}".format(loss))
         self.average_loss *= self.average_loss_decay
         self.average_loss += (1 - self.average_loss_decay) * float(loss.data)
 
+        #print("average_loss={}".format(self.average_loss))
         self.model.cleargrads()
         loss.backward()
         self.optimizer.update()
@@ -186,6 +193,12 @@ class DQL():
         serializers.save_npz('{}.npz'.format(self.saved_attributes[0]), self.model)
         serializers.save_npz('{}.npz'.format(self.saved_attributes[1]), self.target_model)
         serializers.save_npz('{}.npz'.format(self.saved_attributes[2]), self.optimizer)
+
+    def act(self, state):
+
+        qout = self.model(state, test=True)
+
+        return qout.data.argmax(axis=1).astype(np.int32)
 
 
     def load(self, dirname):

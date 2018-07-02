@@ -33,7 +33,7 @@ def loadData(batch_size):
 
 if __name__ == "__main__":
     print("DATA LOAD")
-    dataset = loadData(2)
+    dataset = loadData(32)
     labelTable = {'next_state':[(5, 's')],
                   'current_state':[(3, 's')],
                   'action':[(4, 'a')],
@@ -49,5 +49,15 @@ if __name__ == "__main__":
     print("agent generation")
     agent = DQL(model, optimizer, 0.9, labelTable=labelTable)
 
-    agent.train_using_data(dataset.next())
+    print("training start")
+    for i in range(10000):
+        data = list(dataset.next())
+
+        #print(data)
+        data[4] = data[4] - 1
+
+        agent.train_using_data(data)
+
+        print("i={:04d},loss={},q={}".format(i, agent.average_loss, agent.average_q))
+
 

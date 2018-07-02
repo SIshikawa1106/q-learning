@@ -14,8 +14,8 @@ class PieceModel(chainer.Chain):
     def __call__(self, x, test=False):
 
         img = x['s']
-        print("image shape={}".format(img.shape))
-        print("type={}".format(type(img)))
+        #print("image shape={}".format(img.shape))
+        #print("type={}".format(type(img)))
 
         s = chainer.Variable(img)
         h = F.leaky_relu(self.conv1(s))
@@ -23,4 +23,5 @@ class PieceModel(chainer.Chain):
         h = F.leaky_relu(self.l1(h))
         #h = F.sigmoid(self.l2(h))
         h = self.l2(h)
+
         return h
